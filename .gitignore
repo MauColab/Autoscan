@@ -1,0 +1,23 @@
+# Entorno virtual
+venv/
+
+# Archivos de cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales
+*.log
+*.tmp
+*.swp
+
+# Archivos de Jupyter
+.ipynb_checkpoints
+
+# Archivos de configuración de entorno
+.env
+
+# Archivos de compilación
+build/
+dist/
+*.egg-info/
