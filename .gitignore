@@ -31,3 +31,21 @@ Thumbs.db
 # Archivos de datos
 data/
 Dataset_TP/ecualizadas/
+
+# Entorno Virtual
+.venv/
+venv/
+*.env
+
+# Cache de Python
+__pycache__/
+*.pyc
+
+# Salidas de YOLO 
+runs/
+
+# Archivos de VSCode
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/

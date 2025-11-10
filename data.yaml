@@ -1,0 +1,7 @@
+#Rutas
+train: yolo_dataset/images/train
+val: yolo_dataset/images/val
+
+#Configuración de Clases
+nc: 1
+names: ['placa']
