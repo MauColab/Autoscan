@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoScan Enterprise</title>
+
+    <!-- 1. Tailwind CSS (Configuración Cyberpunk en línea) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#050B14',
+                        surface: '#0F172A',
+                        surfaceHighlight: '#1E293B',
+                        primary: '#00F0FF',
+                        secondary: '#7000FF',
+                        success: '#00FF94',
+                        error: '#FF0055',
+                        text: '#F8FAFC',
+                        textDim: '#94A3B8',
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(0, 240, 255, 0.3), 0 0 20px rgba(0, 240, 255, 0.1)',
+                    },
+                    animation: {
+                        'scan': 'scan 2s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { top: '0%' },
+                            '100%': { top: '100%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0F172A;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .hidden-section {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-background text-text h-screen flex overflow-hidden font-sans selection:bg-primary/30">
+
+    <!-- SIDEBAR -->
+    <aside
+        class="w-64 flex-shrink-0 bg-surface/30 backdrop-blur-xl border-r border-surfaceHighlight flex flex-col p-6 z-20">
+        <div class="flex items-center gap-3 mb-10 px-2">
+            <div
+                class="w-10 h-10 rounded-lg bg-gradient-to-br from-surfaceHighlight to-background border border-primary/30 flex items-center justify-center shadow-neon">
+                <i data-lucide="scan-line" class="text-primary"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl tracking-wider text-text">AUTO<span class="text-primary">SCAN</span></h1>
+                <p class="text-[10px] text-textDim uppercase tracking-[0.2em]">Desktop Client</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 space-y-2" id="sidebar-nav">
+            <!-- Botones generados o estáticos -->
+            <button onclick="switchTab('dashboard')" id="btn-dashboard"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-primary/10 text-primary border border-primary/20 shadow-neon">
+                <i data-lucide="layout-dashboard" class="w-5"></i>
+                <span class="font-medium tracking-wide">Panel de Control</span>
+            </button>
+
+            <button onclick="switchTab('upload')" id="btn-upload"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-textDim hover:bg-surfaceHighlight hover:text-text">
+                <i data-lucide="upload-cloud" class="w-5"></i>
+                <span class="font-medium tracking-wide">Procesar Imagen</span>
+            </button>
+        </nav>
+
+        <div class="mt-auto pt-6 border-t border-surfaceHighlight space-y-2">
+            <button
+                class="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-error/10 rounded-xl transition-colors">
+                <i data-lucide="log-out" class="w-5"></i>
+                <span class="font-medium">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 relative flex flex-col h-full">
+        <!-- Header -->
+        <header
+            class="bg-background/80 backdrop-blur-md border-b border-surfaceHighlight px-8 py-5 flex justify-between items-center sticky top-0 z-10">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-text">Resumen Operativo</h2>
+                <p class="text-textDim text-sm">Unidad de Control Central • ID: AGT-4402</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-success/10 border border-success/20 rounded-full">
+                    <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                    <span class="text-xs font-bold text-success tracking-wider">SISTEMA ONLINE</span>
+                </div>
+                <div
+                    class="w-10 h-10 rounded-full bg-surfaceHighlight flex items-center justify-center text-text font-bold border border-primary/50">
+                    AS</div>
+            </div>
+        </header>
+
+        <!-- Content Body -->
+        <div class="flex-1 overflow-y-auto p-8 relative">
+
+            <!-- VISTA 1: DASHBOARD -->
+            <section id="view-dashboard" class="fade-in space-y-8">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Card 1 -->
+                    <div
+                        class="flex flex-col p-5 rounded-2xl border border-surfaceHighlight bg-surface/50 backdrop-blur-md">
+                        <span class="text-textDim text-sm uppercase tracking-wider font-semibold">Placas Hoy</span>
+                        <div class="flex items-end justify-between mt-2">
+                            <span class="text-3xl font-bold text-text">842</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded bg-success/20 text-success">+12%</span>
+                        </div>
+                    </div>
+                    <!-- Card 2 -->
+                    <div
+                        class="flex flex-col p-5 rounded-2xl border border-secondary/50 bg-surface/50 backdrop-blur-md">
+                        <span class="text-textDim text-sm uppercase tracking-wider font-semibold">Alertas</span>
+                        <div class="flex items-end justify-between mt-2">
+                            <span class="text-3xl font-bold text-text">3</span>
+                            <span
+                                class="text-xs font-bold px-2 py-1 rounded bg-secondary/20 text-secondary">ATENCIÓN</span>
+                        </div>
+                    </div>
+                    <!-- Card 3 -->
+                    <div
+                        class="flex flex-col p-5 rounded-2xl border border-surfaceHighlight bg-surface/50 backdrop-blur-md">
+                        <span class="text-textDim text-sm uppercase tracking-wider font-semibold">Precisión IA</span>
+                        <div class="flex items-end justify-between mt-2">
+                            <span class="text-3xl font-bold text-text">99.4%</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded bg-success/20 text-success">ESTABLE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón grande para ir a Upload -->
+                <div onclick="switchTab('upload')"
+                    class="relative rounded-2xl overflow-hidden border border-primary/30 group cursor-pointer p-8 flex items-center justify-between bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 transition-all">
+                    <div class="space-y-2">
+                        <h3 class="text-2xl font-bold text-white">Iniciar Nuevo Análisis</h3>
+                        <p class="text-primary/80">Arrastre imágenes o use la cámara</p>
+                    </div>
+                    <div
+                        class="w-14 h-14 rounded-full bg-primary text-black flex items-center justify-center shadow-neon group-hover:scale-110 transition-transform">
+                        <i data-lucide="camera" class="w-7 h-7"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA 2: UPLOAD / PROCESAMIENTO -->
+            <section id="view-upload" class="hidden-section fade-in h-full flex flex-col">
+
+                <!-- Estado Inicial: Dropzone -->
+                <div id="drop-zone"
+                    class="flex-1 border-2 border-dashed border-surfaceHighlight bg-surface/20 rounded-3xl flex flex-col items-center justify-center gap-6 transition-all duration-300 hover:border-primary/50 hover:bg-surface/40 relative overflow-hidden group">
+                    <input type="file" id="file-input" class="hidden" accept="image/*">
+
+                    <div
+                        class="w-24 h-24 rounded-full bg-surfaceHighlight flex items-center justify-center border border-surfaceHighlight group-hover:border-primary group-hover:shadow-neon transition-all">
+                        <i data-lucide="upload-cloud"
+                            class="w-10 h-10 text-textDim group-hover:text-primary transition-colors"></i>
+                    </div>
+                    <div class="text-center space-y-2 z-10">
+                        <h3 class="text-2xl font-bold">Arrastra imagen o haz click</h3>
+                        <p class="text-textDim">Soporta JPG, PNG, WEBP</p>
+                    </div>
+                    <button onclick="document.getElementById('file-input').click()"
+                        class="z-10 px-8 py-3 bg-primary text-black font-bold rounded-lg shadow-neon hover:bg-primary/90 transition-transform active:scale-95">
+                        SELECCIONAR ARCHIVO
+                    </button>
+                </div>
+
+                <!-- Estado Secundario: Resultados (Oculto por defecto) -->
+                <div id="result-container" class="hidden-section flex-1 flex gap-6 h-full">
+                    <!-- Preview Imagen -->
+                    <div class="w-2/3 bg-black rounded-3xl border border-surfaceHighlight overflow-hidden relative">
+                        <img id="preview-img" src="" class="w-full h-full object-contain opacity-80">
+
+                        <!-- Overlay de Escaneo -->
+                        <div class="absolute inset-0 pointer-events-none">
+                            <div
+                                class="absolute top-0 left-0 w-full h-1 bg-primary/50 shadow-[0_0_15px_#00F0FF] animate-scan">
+                            </div>
+                            <!-- Esquinas -->
+                            <div
+                                class="absolute top-10 left-10 border-t-4 border-l-4 border-primary w-16 h-16 rounded-tl-xl">
+                            </div>
+                            <div
+                                class="absolute top-10 right-10 border-t-4 border-r-4 border-primary w-16 h-16 rounded-tr-xl">
+                            </div>
+                            <div
+                                class="absolute bottom-10 left-10 border-b-4 border-l-4 border-primary w-16 h-16 rounded-bl-xl">
+                            </div>
+                            <div
+                                class="absolute bottom-10 right-10 border-b-4 border-r-4 border-primary w-16 h-16 rounded-br-xl">
+                            </div>
+                        </div>
+
+                        <button onclick="resetUpload()"
+                            class="absolute top-4 right-4 p-2 bg-black/50 border border-white/20 rounded-full text-white hover:bg-error hover:border-error transition-colors z-20">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Panel Lateral Resultados -->
+                    <div
+                        class="w-1/3 bg-surface border border-surfaceHighlight rounded-3xl p-6 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-text mb-6 flex items-center gap-2">
+                                <i data-lucide="shield-check" class="text-success"></i>
+                                Resultados
+                            </h3>
+
+                            <div class="p-4 bg-surfaceHighlight/50 rounded-xl border border-surfaceHighlight mb-6">
+                                <p class="text-textDim text-xs uppercase tracking-wider mb-1">Matrícula Detectada</p>
+                                <p id="plate-result" class="text-4xl font-mono font-bold text-primary tracking-widest">
+                                    ---</p>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-textDim">Confianza IA</span>
+                                        <span class="text-success font-bold">98.5%</span>
+                                    </div>
+                                    <div class="h-2 bg-surfaceHighlight rounded-full overflow-hidden">
+                                        <div class="h-full bg-success w-[98.5%] shadow-[0_0_10px_#00FF94]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            class="w-full py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg hover:opacity-90 flex items-center justify-center gap-2">
+                            REGISTRAR INGRESO
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>
