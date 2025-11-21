@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { User, Mail, Lock, Shield, ArrowLeft } from 'lucide-react-native';
 import { COLORS } from '@/constants/theme';
-import { useSession } from '../ctx';
+import { useSession } from '../../context/ctx';
 
 export default function RegisterScreen() {
   const { signIn } = useSession();
@@ -40,7 +40,7 @@ export default function RegisterScreen() {
     if (errorMsg) {
       setError(errorMsg);
     } else {
-      setError("");  
+      setError("");
       router.push("/(auth)/login");
     }
   };
@@ -55,31 +55,31 @@ export default function RegisterScreen() {
       <Text style={styles.subtitle}>Registrate como usuario y ayuda contra la delincuencia</Text>
 
       <View style={styles.form}>
-        <InputItem 
-          icon={<User size={20} color={COLORS.secondary} />} 
+        <InputItem
+          icon={<User size={20} color={COLORS.secondary} />}
           placeholder="Nombre Completo"
           value={nombre}
           onChangeText={setNombre}
         />
 
-        <InputItem 
-          icon={<Shield size={20} color={COLORS.secondary} />} 
+        <InputItem
+          icon={<Shield size={20} color={COLORS.secondary} />}
           placeholder="DNI del Usuario"
           value={dni}
           onChangeText={setDni}
           keyboardType="numeric"
         />
 
-        <InputItem 
-          icon={<Mail size={20} color={COLORS.secondary} />} 
+        <InputItem
+          icon={<Mail size={20} color={COLORS.secondary} />}
           placeholder="Email Personal"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
         />
 
-        <InputItem 
-          icon={<Lock size={20} color={COLORS.secondary} />} 
+        <InputItem
+          icon={<Lock size={20} color={COLORS.secondary} />}
           placeholder="Contraseña Maestra"
           value={pass}
           onChangeText={setPass}
@@ -91,7 +91,7 @@ export default function RegisterScreen() {
         )}
 
         <TouchableOpacity style={styles.registerBtn} onPress={() => {
-        signIn();
+          signIn();
         }}>
           <Text style={styles.registerText}>ENVIAR SOLICITUD</Text>
         </TouchableOpacity>
@@ -104,11 +104,11 @@ function InputItem({ icon, placeholder, secure, value, onChangeText, keyboardTyp
   return (
     <View style={styles.inputContainer}>
       {icon}
-      <TextInput 
-        placeholder={placeholder} 
+      <TextInput
+        placeholder={placeholder}
         placeholderTextColor={COLORS.textDim}
         secureTextEntry={secure}
-        style={styles.input} 
+        style={styles.input}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
@@ -123,17 +123,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, color: COLORS.text, fontWeight: 'bold' },
   subtitle: { color: COLORS.textDim, marginBottom: 40 },
   form: { gap: 16 },
-  inputContainer: { 
+  inputContainer: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surface, borderRadius: 12, 
+    backgroundColor: COLORS.surface, borderRadius: 12,
     borderWidth: 1, borderColor: COLORS.surfaceHighlight,
-    height: 56, paddingHorizontal: 16 
+    height: 56, paddingHorizontal: 16
   },
   input: { flex: 1, color: COLORS.text, fontSize: 16 },
-  registerBtn: { 
-    height: 56, borderRadius: 12, backgroundColor: 'transparent', 
+  registerBtn: {
+    height: 56, borderRadius: 12, backgroundColor: 'transparent',
     borderWidth: 1, borderColor: COLORS.secondary,
-    alignItems: 'center', justifyContent: 'center', marginTop: 10 
+    alignItems: 'center', justifyContent: 'center', marginTop: 10
   },
   registerText: { color: COLORS.secondary, fontWeight: 'bold', letterSpacing: 1 },
   errorMsg: { color: 'red', marginTop: 5, textAlign: 'center', fontSize: 14 }

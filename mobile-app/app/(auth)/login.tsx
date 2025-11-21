@@ -4,14 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
 
-import { useSession } from '../ctx'; // Importar el hook
+import { useSession } from '../../context/ctx'; // Importar el hook
 
 export default function LoginScreen() {
   const { signIn } = useSession(); // Usar el hook
   const router = useRouter();
 
   const handleLogin = () => {
-    signIn(); 
+    signIn();
   };
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -27,20 +27,20 @@ export default function LoginScreen() {
       <View style={styles.form}>
         <View style={styles.inputContainer}>
           <Mail color={COLORS.primary} size={20} style={styles.inputIcon} />
-          <TextInput 
-            placeholder="ID Corporativo / Email" 
+          <TextInput
+            placeholder="ID Corporativo / Email"
             placeholderTextColor={COLORS.textDim}
-            style={styles.input} 
+            style={styles.input}
           />
         </View>
 
         <View style={styles.inputContainer}>
           <Lock color={COLORS.primary} size={20} style={styles.inputIcon} />
-          <TextInput 
-            placeholder="Contraseña de Acceso" 
+          <TextInput
+            placeholder="Contraseña de Acceso"
             placeholderTextColor={COLORS.textDim}
             secureTextEntry
-            style={styles.input} 
+            style={styles.input}
           />
         </View>
 
@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, color: COLORS.text, fontWeight: 'bold', letterSpacing: 1 },
   subtitle: { color: COLORS.textDim, marginTop: 8 },
   form: { gap: 20 },
-  inputContainer: { 
-    flexDirection: 'row', alignItems: 'center', 
-    backgroundColor: COLORS.surface, borderRadius: 12, 
+  inputContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surface, borderRadius: 12,
     borderWidth: 1, borderColor: COLORS.surfaceHighlight,
-    height: 56, paddingHorizontal: 16 
+    height: 56, paddingHorizontal: 16
   },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, color: COLORS.text, fontSize: 16 },

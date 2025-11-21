@@ -1,11 +1,63 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { X, Camera, Image as ImageIcon, UploadCloud } from 'lucide-react-native';
+import { X, Camera, Image as ImageIcon, UploadCloud, RefreshCw } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
-import { BlurView } from 'expo-blur';
+import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
+import { useState } from 'react';
 
 export default function ScannerScreen() {
   const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
+
+  if (!permission) {
+    // Camera permissions are still loading.
+    return <View />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center', color: COLORS.text, marginBottom: 20 }}>
+          Necesitamos permiso para usar la cámara
+        </Text>
+        <TouchableOpacity onPress={requestPermission} style={styles.btnPrimary}>
+          <Text style={styles.btnText}>Conceder Permiso</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  function toggleCameraFacing() {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  }
+
+  if (isCameraOpen) {
+    return (
+      <View style={styles.cameraContainer}>
+        <CameraView style={styles.camera} facing={facing}>
+          <View style={styles.cameraControls}>
+            <TouchableOpacity style={styles.cameraBtn} onPress={() => setIsCameraOpen(false)}>
+              <X color="#fff" size={24} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.captureBtn} onPress={() => {
+              // Mock capture
+              setIsCameraOpen(false);
+              alert("Foto capturada (Simulación)");
+            }}>
+              <View style={styles.captureInner} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cameraBtn} onPress={toggleCameraFacing}>
+              <RefreshCw color="#fff" size={24} />
+            </TouchableOpacity>
+          </View>
+        </CameraView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -18,7 +70,7 @@ export default function ScannerScreen() {
         <View style={styles.iconContainer}>
           <UploadCloud size={60} color={COLORS.primary} />
         </View>
-        
+
         <Text style={styles.title}>Análisis de Placa</Text>
         <Text style={styles.subtitle}>
           Seleccione el método de entrada.{'\n'}El sistema de IA procesará la imagen automáticamente.
@@ -26,35 +78,38 @@ export default function ScannerScreen() {
 
         {/* Opciones de Entrada */}
         <View style={styles.actions}>
-          <ActionButton 
-            icon={<Camera size={32} color="#000" />} 
-            title="Tomar Foto" 
+          <ActionButton
+            icon={<Camera size={32} color="#000" />}
+            title="Tomar Foto"
             desc="Usar cámara del dispositivo"
             primary
+            onPress={() => setIsCameraOpen(true)}
           />
-          
-          <ActionButton 
-            icon={<ImageIcon size={32} color={COLORS.text} />} 
-            title="Galería" 
+
+          <ActionButton
+            icon={<ImageIcon size={32} color={COLORS.text} />}
+            title="Galería"
             desc="Subir imagen existente"
+            onPress={() => alert("Abrir galería (Simulación)")}
           />
         </View>
       </View>
-      
+
       {/* Footer Legal */}
       <Text style={styles.footerText}>VisionGuard Enterprise v2.4.0</Text>
     </View>
   );
 }
 
-function ActionButton({ icon, title, desc, primary }: any) {
+function ActionButton({ icon, title, desc, primary, onPress }: any) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.actionButton, 
+        styles.actionButton,
         primary ? { backgroundColor: COLORS.primary } : { backgroundColor: COLORS.surface, borderColor: COLORS.surfaceHighlight, borderWidth: 1 }
       ]}
       activeOpacity={0.8}
+      onPress={onPress}
     >
       <View style={styles.actionContent}>
         {icon}
@@ -71,9 +126,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: 24 },
   closeBtn: { marginTop: 40, alignSelf: 'flex-end', padding: 8, backgroundColor: COLORS.surfaceHighlight, borderRadius: 20 },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  iconContainer: { 
-    width: 120, height: 120, borderRadius: 60, 
-    backgroundColor: 'rgba(0, 240, 255, 0.1)', 
+  iconContainer: {
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: COLORS.primary,
     marginBottom: 30, ...STYLES.shadow
@@ -85,5 +140,26 @@ const styles = StyleSheet.create({
   actionContent: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   actionTitle: { fontSize: 18, fontWeight: 'bold' },
   actionDesc: { fontSize: 13 },
-  footerText: { textAlign: 'center', color: COLORS.surfaceHighlight, marginBottom: 20 }
+  footerText: { textAlign: 'center', color: COLORS.surfaceHighlight, marginBottom: 20 },
+
+  // Camera Styles
+  cameraContainer: { flex: 1 },
+  camera: { flex: 1 },
+  cameraControls: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    marginBottom: 40
+  },
+  cameraBtn: { padding: 15, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 50 },
+  captureBtn: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center', alignItems: 'center'
+  },
+  captureInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff' },
+  btnPrimary: { backgroundColor: COLORS.primary, padding: 15, borderRadius: 10, marginTop: 20 },
+  btnText: { color: '#000', fontWeight: 'bold' }
 });

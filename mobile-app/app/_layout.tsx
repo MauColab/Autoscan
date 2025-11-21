@@ -1,6 +1,6 @@
 import { Slot, Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { SessionProvider, useSession } from './ctx';
+import { SessionProvider, useSession } from '../context/ctx';
 import { ThemeProvider, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from '@/constants/theme';
@@ -18,7 +18,7 @@ function RootLayoutNav() {
 
     if (session && !inTabsGroup) {
       // Si hay usuario y NO está en los tabs, mandarlo al dashboard
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)');
     } else if (!session && !inAuthGroup) {
       // Si NO hay usuario y trata de entrar a la app, mandarlo al welcome
       router.replace('/(auth)/welcome');
@@ -30,12 +30,12 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen 
-          name="scanner/index" 
-          options={{ 
+        <Stack.Screen
+          name="scanner/index"
+          options={{
             presentation: 'fullScreenModal',
-            animation: 'fade_from_bottom' 
-          }} 
+            animation: 'fade_from_bottom'
+          }}
         />
       </Stack>
       <StatusBar style="light" />
