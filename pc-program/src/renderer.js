@@ -1,57 +1,81 @@
 // Inicializar Iconos
-lucide.createIcons();
+if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+}
 
 // --- STATE MANAGEMENT ---
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 const stations = JSON.parse(localStorage.getItem('stations')) || [];
 
-// --- DOM ELEMENTS ---
-const views = {
-    auth: document.getElementById('auth-view'),
-    app: document.getElementById('app-view'),
-    reports: document.getElementById('view-reports'),
-    evaluations: document.getElementById('view-evaluations'),
-    cameras: document.getElementById('view-cameras'),
-    upload: document.getElementById('view-upload')
-};
-
-const navBtns = {
-    reports: document.getElementById('btn-reports'),
-    evaluations: document.getElementById('btn-evaluations'),
-    cameras: document.getElementById('btn-cameras'),
-    upload: document.getElementById('btn-upload')
-};
-
-const pageTitle = document.getElementById('page-title');
-const stationDisplay = document.getElementById('station-display');
-const userNameDisplay = document.getElementById('user-name');
+// --- DOM ELEMENTS (Selected lazily or in init) ---
+let views, navBtns, pageTitle, stationDisplay, userNameDisplay;
 
 // --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize DOM references
+    views = {
+        auth: document.getElementById('auth-view'),
+        app: document.getElementById('app-view'),
+        reports: document.getElementById('view-reports'),
+        evaluations: document.getElementById('view-evaluations'),
+        cameras: document.getElementById('view-cameras'),
+        upload: document.getElementById('view-upload')
+    };
+
+    navBtns = {
+        reports: document.getElementById('btn-reports'),
+        evaluations: document.getElementById('btn-evaluations'),
+        cameras: document.getElementById('btn-cameras'),
+        upload: document.getElementById('btn-upload')
+    };
+
+    pageTitle = document.getElementById('page-title');
+    stationDisplay = document.getElementById('station-display');
+    userNameDisplay = document.getElementById('user-name');
+
+    // Initialize App State
+    init();
+});
+
 function init() {
-    if (currentUser) {
-        showApp();
-    } else {
+    try {
+        if (currentUser) {
+            showApp();
+        } else {
+            showAuth();
+        }
+    } catch (e) {
+        console.error("Error initializing app view:", e);
+        // Fallback to auth if something breaks
         showAuth();
     }
-    renderReports();
-    renderEvaluations();
+
+    // Always try to render data
+    try {
+        renderReports();
+        renderEvaluations();
+    } catch (e) {
+        console.error("Error rendering data:", e);
+    }
 }
 
 // --- AUTHENTICATION ---
 function showAuth() {
+    if (!views.auth || !views.app) return;
     views.auth.classList.remove('hidden-section');
     views.app.classList.add('hidden-section');
 }
 
 function showApp() {
+    if (!views.auth || !views.app) return;
     views.auth.classList.add('hidden-section');
     views.app.classList.remove('hidden-section');
-    
-    if(currentUser) {
-        stationDisplay.innerText = currentUser.name;
-        userNameDisplay.innerText = `Oficial ${currentUser.id}`;
+
+    if (currentUser) {
+        if (stationDisplay) stationDisplay.innerText = currentUser.name;
+        if (userNameDisplay) userNameDisplay.innerText = `Oficial ${currentUser.id}`;
     }
-    
+
     // Default tab
     switchTab('reports');
 }
@@ -63,7 +87,7 @@ function handleLogin(e) {
 
     // Mock Login (Accept any if empty, or check against registered)
     const station = stations.find(s => s.id === id && s.pass === pass);
-    
+
     if (station || (id === 'admin' && pass === 'admin')) {
         currentUser = station || { id: 'ADMIN', name: 'Comisaría Central', pass: 'admin' };
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -79,7 +103,7 @@ function handleRegister(e) {
     const id = document.getElementById('reg-station-id').value;
     const pass = document.getElementById('reg-password').value;
 
-    if(stations.find(s => s.id === id)) {
+    if (stations.find(s => s.id === id)) {
         alert('ID de comisaría ya existe');
         return;
     }
@@ -87,7 +111,7 @@ function handleRegister(e) {
     const newStation = { id, name, pass };
     stations.push(newStation);
     localStorage.setItem('stations', JSON.stringify(stations));
-    
+
     alert('Comisaría registrada exitosamente. Por favor inicie sesión.');
     toggleAuthMode();
 }
@@ -116,24 +140,28 @@ function logout() {
 
 // --- NAVIGATION ---
 function switchTab(tabName) {
+    if (!views || !views[tabName]) return;
+
     // Hide all content views
     ['reports', 'evaluations', 'cameras', 'upload'].forEach(v => {
-        views[v].classList.add('hidden-section');
+        if (views[v]) views[v].classList.add('hidden-section');
     });
 
     // Reset nav buttons
     Object.values(navBtns).forEach(btn => {
-        btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text";
-        const icon = btn.querySelector('i');
-        if(icon) icon.classList.remove('text-primary');
+        if (btn) {
+            btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text";
+            const icon = btn.querySelector('i');
+            if (icon) icon.classList.remove('text-primary');
+        }
     });
 
     // Show selected view
     views[tabName].classList.remove('hidden-section');
-    
+
     // Highlight button
     const activeBtn = navBtns[tabName];
-    if(activeBtn) {
+    if (activeBtn) {
         activeBtn.className = "nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all bg-primary/10 text-primary border border-primary/20 shadow-sm";
         activeBtn.querySelector('i').classList.add('text-primary');
     }
@@ -145,7 +173,11 @@ function switchTab(tabName) {
         cameras: 'Cámaras de Vigilancia',
         upload: 'Cargar Evidencia'
     };
-    pageTitle.innerText = titles[tabName];
+
+    if (pageTitle) {
+        pageTitle.innerText = titles[tabName];
+    }
+    document.title = `AutoScan Enterprise - ${titles[tabName]}`;
 }
 
 // --- MOCK DATA & RENDERING ---
@@ -161,6 +193,8 @@ const mockReports = [
 
 function renderReports() {
     const tbody = document.getElementById('reports-table-body');
+    if (!tbody) return;
+
     tbody.innerHTML = mockReports.map(r => `
         <tr class="hover:bg-surfaceHighlight/30 transition-colors">
             <td class="px-6 py-4 font-mono text-primary font-bold">${r.plate}</td>
@@ -178,7 +212,7 @@ function renderReports() {
 }
 
 function getStatusClass(status) {
-    switch(status) {
+    switch (status) {
         case 'Robado': return 'bg-error/20 text-error';
         case 'Sospechoso': return 'bg-secondary/20 text-secondary';
         default: return 'bg-success/20 text-success';
@@ -194,6 +228,8 @@ const mockEvaluations = [
 
 function renderEvaluations() {
     const grid = document.getElementById('evaluations-grid');
+    if (!grid) return;
+
     grid.innerHTML = mockEvaluations.map(e => `
         <div class="bg-surface border border-surfaceHighlight rounded-xl overflow-hidden flex flex-col">
             <div class="h-48 overflow-hidden relative group">
@@ -219,7 +255,10 @@ function renderEvaluations() {
             </div>
         </div>
     `).join('');
-    lucide.createIcons();
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 // --- UPLOAD LOGIC ---
@@ -228,24 +267,28 @@ const fileInput = document.getElementById('file-input');
 const resultContainer = document.getElementById('result-container');
 const filenameDisplay = document.getElementById('filename-display');
 
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, false);
-});
+if (dropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
 
-dropZone.addEventListener('dragover', () => dropZone.classList.add('border-primary', 'bg-surface/40'));
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary', 'bg-surface/40'));
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('border-primary', 'bg-surface/40'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary', 'bg-surface/40'));
 
-dropZone.addEventListener('drop', (e) => {
-    dropZone.classList.remove('border-primary', 'bg-surface/40');
-    handleFiles(e.dataTransfer.files);
-});
+    dropZone.addEventListener('drop', (e) => {
+        dropZone.classList.remove('border-primary', 'bg-surface/40');
+        handleFiles(e.dataTransfer.files);
+    });
+}
 
-fileInput.addEventListener('change', function() {
-    handleFiles(this.files);
-});
+if (fileInput) {
+    fileInput.addEventListener('change', function () {
+        handleFiles(this.files);
+    });
+}
 
 function handleFiles(files) {
     if (files.length > 0) {
@@ -260,24 +303,22 @@ function handleFiles(files) {
 }
 
 function processFile(file) {
-    dropZone.classList.add('hidden-section');
-    resultContainer.classList.remove('hidden-section');
-    resultContainer.classList.add('fade-in');
-    
-    filenameDisplay.innerText = file.name;
-    
-    // Here you would normally send the file to the backend
+    if (dropZone) dropZone.classList.add('hidden-section');
+    if (resultContainer) {
+        resultContainer.classList.remove('hidden-section');
+        resultContainer.classList.add('fade-in');
+    }
+
+    if (filenameDisplay) filenameDisplay.innerText = file.name;
+
     console.log("Processing file:", file.name);
 }
 
 function resetUpload() {
-    resultContainer.classList.add('hidden-section');
-    dropZone.classList.remove('hidden-section');
-    fileInput.value = "";
+    if (resultContainer) resultContainer.classList.add('hidden-section');
+    if (dropZone) dropZone.classList.remove('hidden-section');
+    if (fileInput) fileInput.value = "";
 }
-
-// Start
-init();
 
 // Expose functions to window for HTML onclick events
 window.handleLogin = handleLogin;
