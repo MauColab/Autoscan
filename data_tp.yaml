@@ -1,0 +1,9 @@
+# Rutas absolutas o relativas a Dataset_TP
+path: Dataset_TP  # Raíz del dataset
+train: train      # Carpeta de entrenamiento (contiene imágenes y txts convertidos)
+val: valid        # Carpeta de validación (ojo: en tu foto se llama 'valid', no 'val')
+test: test        # Carpeta de test (opcional)
+
+# Clases
+nc: 1
+names: ['placa']
