@@ -5,7 +5,7 @@ import os
 
 # 1. Inicializar modelos
 # Carga tu modelo entrenado (ej. 'best.pt') o uno pre-entrenado
-model = YOLO('yolov8s.pt') 
+model = YOLO('modeloentrenado.pt') 
 
 # Inicializar EasyOCR (puedes agregar 'es' si esperas texto en español)
 reader = easyocr.Reader(['en'], gpu=False) # Pon gpu=False si no tienes CUDA
@@ -58,7 +58,7 @@ for result in results:
             # detail=0 devuelve solo el texto simple. 
             # Quita detail=0 si quieres coordenadas y confianza del texto
             # Solo permitir caracteres alfanuméricos
-            ocr_result = reader.readtext(plate_crop, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+            ocr_result = reader.readtext(binary_plate, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
             
             # Mostrar resultados
             print(f"Placa detectada en [{x1}, {y1}, {x2}, {y2}]")
