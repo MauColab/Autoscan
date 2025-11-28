@@ -113,7 +113,7 @@ def extraerPlaca(imagen_path):
 
     # ------- PaddleOCR -------
     # Silenciar mensajes de depuración
-    logging.getLogger("ppocr").setLevel(logging.WARNING)
+    #logging.getLogger("ppocr").setLevel(logging.WARNING)
     
     # Inicializar el modelo
     ocr = PaddleOCR(

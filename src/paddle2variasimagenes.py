@@ -183,11 +183,11 @@ def generarCollageResultados(carpeta_imagenes):
         modelo_yolo = YOLO('modeloentrenado.pt') # Tu modelo custom
     except:
         print("Aviso: 'modeloentrenado.pt' no encontrado. Usando 'yolov8n.pt' para demostración.")
-        modelo_yolo = YOLO('yolov8n.pt')
+        modelo_yolo = YOLO('yolov8s.pt')
 
     # Silenciar logs de Paddle
     logging.getLogger("ppocr").setLevel(logging.WARNING)
-    ocr = PaddleOCR(use_textline_orientation=True, lang='en')
+    ocr = PaddleOCR(use_textline_orientation=True, use_doc_orientation_classify=False,use_doc_unwarping=True, lang='en')
 
     # 2. Buscar imágenes
     valid_ext = ('.png', '.jpg', '.jpeg', '.bmp')
