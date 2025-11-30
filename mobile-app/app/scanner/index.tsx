@@ -3,12 +3,10 @@ import { useRouter } from 'expo-router';
 import { X, Camera, Image as ImageIcon, UploadCloud, RefreshCw, CheckCircle, AlertTriangle, CheckSquare, Square } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 
-// --- CONFIGURATION ---
-// REPLACE THIS WITH YOUR PC'S IP ADDRESS (e.g., 192.168.1.15)
-// Based on your ipconfig, try 10.67.153.175 (Wi-Fi) or 192.168.56.1 (Ethernet 2)
+// REPLACE THIS WITH YOUR PC'S IP ADDRESS
 const API_URL = 'http://10.67.153.175:5000'; 
 
 export default function ScannerScreen() {
@@ -38,15 +36,22 @@ export default function ScannerScreen() {
     img: ''
   });
 
+  useEffect(() => {
+    // Request permission on mount if not determined
+    if (permission && !permission.granted && permission.canAskAgain) {
+        requestPermission();
+    }
+  }, [permission]);
+
   if (!permission) {
-    return <View />;
+    return <View style={styles.container} />;
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center', color: COLORS.text, marginBottom: 20 }}>
-          Necesitamos permiso para usar la cámara
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ textAlign: 'center', color: COLORS.text, marginBottom: 20, fontSize: 16 }}>
+          Necesitamos acceso a la cámara para escanear placas.
         </Text>
         <TouchableOpacity onPress={requestPermission} style={styles.btnPrimary}>
           <Text style={styles.btnText}>Conceder Permiso</Text>
@@ -181,10 +186,15 @@ export default function ScannerScreen() {
 
   async function takePicture() {
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
-      if (photo) {
-        setIsCameraOpen(false);
-        handleImage(photo.uri);
+      try {
+          const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+          if (photo) {
+            setIsCameraOpen(false);
+            handleImage(photo.uri);
+          }
+      } catch (e) {
+          console.error("Error taking picture:", e);
+          Alert.alert("Error", "No se pudo capturar la foto.");
       }
     }
   }
@@ -203,7 +213,12 @@ export default function ScannerScreen() {
   if (isCameraOpen) {
     return (
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+        <CameraView 
+            ref={cameraRef} 
+            style={styles.camera} 
+            facing={facing}
+            onMountError={(e) => Alert.alert("Error de Cámara", "No se pudo iniciar la cámara: " + e.message)}
+        >
           <View style={styles.cameraControls}>
             <TouchableOpacity style={styles.cameraBtn} onPress={() => setIsCameraOpen(false)}>
               <X color="#fff" size={24} />
@@ -414,7 +429,7 @@ const styles = StyleSheet.create({
   footerText: { textAlign: 'center', color: COLORS.surfaceHighlight, marginBottom: 20 },
 
   // Camera Styles
-  cameraContainer: { flex: 1 },
+  cameraContainer: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
   cameraControls: {
     flex: 1,

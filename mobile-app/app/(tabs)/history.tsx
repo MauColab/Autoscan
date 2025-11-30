@@ -1,40 +1,38 @@
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Clock, CheckCircle, AlertTriangle, User, FileText, XCircle, Loader } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
+import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React from 'react';
 
-// Datos Mock Actualizados
-const HISTORY_DATA = [
-  {
-    id: '1',
-    plate: 'ABC-123',
-    status: 'approved',
-    date: '20 Nov, 14:30',
-    officer: 'Oficial Ramirez',
-    comment: 'Vehículo mal estacionado en zona rígida.',
-    img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80'
-  },
-  {
-    id: '2',
-    plate: 'XYZ-987',
-    status: 'review',
-    date: '20 Nov, 12:15',
-    officer: 'Sgt. Mendoza',
-    comment: 'Posible placa adulterada, se requiere verificación manual.',
-    img: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80'
-  },
-  {
-    id: '3',
-    plate: 'LMN-456',
-    status: 'rejected',
-    date: '19 Nov, 09:45',
-    officer: 'Sistema AutoScan',
-    comment: 'Imagen borrosa, no se pudo identificar la placa.',
-    img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80'
-  },
-];
+// REPLACE WITH YOUR PC IP
+const API_URL = 'http://10.67.153.175:5000';
 
 export default function HistoryScreen() {
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchHistory();
+    }, [])
+  );
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/evaluations`);
+      const data = await res.json();
+      setHistoryData(data);
+    } catch (e) {
+      console.log("Error fetching history", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={[COLORS.background, '#0f172a']} style={StyleSheet.absoluteFill} />
@@ -44,12 +42,23 @@ export default function HistoryScreen() {
         <Text style={styles.subtitle}>Seguimiento de casos enviados</Text>
       </View>
 
-      <FlatList
-        data={HISTORY_DATA}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        renderItem={({ item }) => <HistoryCard item={item} />}
-      />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={historyData}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', marginTop: 50 }}>
+              <Text style={{ color: COLORS.textDim }}>No hay denuncias registradas.</Text>
+            </View>
+          }
+          renderItem={({ item }) => <HistoryCard item={item} />}
+        />
+      )}
     </View>
   );
 }
@@ -67,17 +76,17 @@ function HistoryCard({ item }: any) {
 
       {/* Content: Imagen e Info */}
       <View style={styles.cardContent}>
-        <Image source={{ uri: item.img }} style={styles.evidenceImg} />
+        <Image source={{ uri: item.img_url || 'https://via.placeholder.com/150' }} style={styles.evidenceImg} />
 
         <View style={styles.infoContainer}>
           <View style={styles.infoRow}>
             <User size={14} color={COLORS.primary} />
-            <Text style={styles.infoText} numberOfLines={1}>{item.officer}</Text>
+            <Text style={styles.infoText} numberOfLines={1}>{item.sender || 'Usuario'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <FileText size={14} color={COLORS.textDim} />
-            <Text style={styles.commentText} numberOfLines={2}>{item.comment}</Text>
+            <Text style={styles.commentText} numberOfLines={2}>{item.summary || 'Sin comentarios'}</Text>
           </View>
         </View>
       </View>
@@ -85,7 +94,9 @@ function HistoryCard({ item }: any) {
       {/* Footer: Fecha */}
       <View style={styles.cardFooter}>
         <Clock size={12} color={COLORS.textDim} />
-        <Text style={styles.dateText}>{item.date}</Text>
+        <Text style={styles.dateText}>
+          {item.created_at ? new Date(item.created_at).toLocaleString() : 'Reciente'}
+        </Text>
       </View>
     </View>
   );
@@ -93,19 +104,19 @@ function HistoryCard({ item }: any) {
 
 function StatusBadge({ status }: { status: string }) {
   let color = COLORS.success;
-  let text = "APROBADO";
+  let text = "PROCESADO";
   let Icon = CheckCircle;
   let bg = "rgba(0, 255, 148, 0.1)";
 
-  if (status === 'review') {
+  if (status === 'pending') {
     color = COLORS.primary;
     text = "EN REVISIÓN";
     Icon = Loader;
     bg = "rgba(0, 240, 255, 0.1)";
   }
-  if (status === 'rejected') {
+  if (status === 'discarded') {
     color = COLORS.error;
-    text = "RECHAZADO";
+    text = "DESCARTADO";
     Icon = XCircle;
     bg = "rgba(255, 0, 85, 0.1)";
   }

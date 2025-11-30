@@ -1,13 +1,28 @@
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Switch, ScrollView } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut, Settings, CreditCard, Bell, X, Info, ShieldCheck } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
 import { useSession } from '../../context/ctx';
+import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from 'expo-router';
+import React from 'react';
 
 export default function ProfileScreen() {
   const { signOut } = useSession();
   const [showConfig, setShowConfig] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
+  const [userName, setUserName] = useState("Usuario");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
+  const loadUserData = async () => {
+      const name = await SecureStore.getItemAsync('user_name');
+      if (name) setUserName(name);
+  }
 
   // Generar Licencia Mock una vez
   const [license] = useState(`ENT-${Math.floor(Math.random() * 10000)}-${Math.floor(Math.random() * 10000)}`);
@@ -16,9 +31,9 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>AS</Text>
+          <Text style={styles.avatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
         </View>
-        <Text style={styles.name}>Agente Smith</Text>
+        <Text style={styles.name}>{userName}</Text>
         <Text style={styles.role}>Unidad de Control LPR</Text>
       </View>
 

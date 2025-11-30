@@ -1,11 +1,45 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera, History, AlertCircle } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSession } from '../../context/ctx';
+import { useEffect, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from 'expo-router';
+import React from 'react';
+
+// REPLACE WITH YOUR PC IP
+const API_URL = 'http://10.67.153.175:5000';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { session } = useSession(); 
+  const [userName, setUserName] = useState("Usuario");
+  const [loading, setLoading] = useState(false);
+  const [recentActivity, setRecentActivity] = useState([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+      fetchActivity();
+    }, [])
+  );
+
+  const loadUserData = async () => {
+      const name = await SecureStore.getItemAsync('user_name');
+      if (name) setUserName(name);
+  }
+
+  const fetchActivity = async () => {
+      try {
+          const res = await fetch(`${API_URL}/evaluations`);
+          const data = await res.json();
+          setRecentActivity(data.slice(0, 3));
+      } catch (e) {
+          console.log("Error fetching activity", e);
+      }
+  }
 
   return (
     <View style={styles.container}>
@@ -15,7 +49,7 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bienvenido,</Text>
-          <Text style={styles.username}>Agente Smith</Text>
+          <Text style={styles.username}>{userName}</Text>
         </View>
         <View style={styles.badge}>
           <View style={styles.statusDot} />
@@ -26,8 +60,8 @@ export default function DashboardScreen() {
       <ScrollView contentContainerStyle={{ padding: 24, gap: 24 }}>
         {/* Stats Cards */}
         <View style={styles.statsRow}>
-          <StatCard label="Escaneos" value="142" />
-          <StatCard label="Alertas" value="3" isAlert />
+          <StatCard label="Escaneos" value={recentActivity.length.toString()} />
+          <StatCard label="Alertas" value="0" isAlert />
         </View>
 
         {/* Botón Principal de Acción */}
@@ -50,10 +84,19 @@ export default function DashboardScreen() {
         {/* Actividad Reciente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actividad Reciente</Text>
-          {/* Mock Data */}
-          <ActivityItem plate="ABC-123" status="approved" time="10:42 AM" />
-          <ActivityItem plate="XYZ-999" status="review" time="10:30 AM" />
-          <ActivityItem plate="FNQ-202" status="approved" time="09:15 AM" />
+          
+          {recentActivity.length === 0 ? (
+              <Text style={{ color: COLORS.textDim, fontStyle: 'italic' }}>No hay actividad reciente.</Text>
+          ) : (
+              recentActivity.map((item: any, index) => (
+                  <ActivityItem 
+                    key={index}
+                    plate={item.plate} 
+                    status={item.status === 'pending' ? 'review' : 'approved'} 
+                    time={item.created_at ? new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''} 
+                  />
+              ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -70,7 +113,7 @@ function StatCard({ label, value, isAlert }: any) {
 }
 
 function ActivityItem({ plate, status, time }: any) {
-  const isReview = status === 'review';
+  const isReview = status === 'pending';
   return (
     <View style={styles.activityItem}>
       <View style={styles.plateBox}>
@@ -78,7 +121,7 @@ function ActivityItem({ plate, status, time }: any) {
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={[styles.statusText, { color: isReview ? COLORS.secondary : COLORS.success }]}>
-          {isReview ? 'EN REVISIÓN' : 'APROBADO'}
+          {isReview ? 'EN REVISIÓN' : 'PROCESADO'}
         </Text>
         <Text style={styles.timeText}>{time}</Text>
       </View>

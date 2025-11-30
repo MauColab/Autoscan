@@ -42,10 +42,8 @@ if SUPABASE_URL and SUPABASE_KEY:
 
 # --- IN-MEMORY FALLBACK ---
 evaluations_fallback = []
-reports_fallback = [
-    {'id': '1', 'plate': 'ABC-123', 'model': 'Toyota Corolla', 'location': 'Av. Javier Prado', 'owner': 'Juan Perez', 'status': 'Limpio', 'time': '10:42 AM'},
-    {'id': '2', 'plate': 'XYZ-987', 'model': 'Nissan Sentra', 'location': 'Calle Los Pinos', 'owner': 'Maria Lopez', 'status': 'Robado', 'time': '11:15 AM'},
-]
+reports_fallback = []
+mobile_users_fallback = []
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -89,6 +87,123 @@ def predict():
     except Exception as e:
         print(f"Error processing image: {e}")
         return jsonify({"error": str(e)}), 500
+
+# --- STATION AUTH (PC) ---
+@app.route('/station/register', methods=['POST'])
+def station_register():
+    data = request.json
+    station_id = data.get('station_id')
+    name = data.get('name')
+    password = data.get('password')
+    
+    if not all([station_id, name, password]):
+        return jsonify({"error": "Faltan datos"}), 400
+        
+    if supabase:
+        try:
+            # Check if exists
+            existing = supabase.table('stations').select("*").eq('station_id', station_id).execute()
+            if existing.data:
+                return jsonify({"error": "ID de comisaría ya registrado"}), 400
+                
+            new_station = {
+                'station_id': station_id,
+                'name': name,
+                'password': password
+            }
+            response = supabase.table('stations').insert(new_station).execute()
+            return jsonify({"status": "success", "station": response.data[0]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"status": "success", "station": {"station_id": station_id, "name": name}}) # Mock success
+
+@app.route('/station/login', methods=['POST'])
+def station_login():
+    data = request.json
+    station_id = data.get('station_id')
+    password = data.get('password')
+    
+    if supabase:
+        try:
+            response = supabase.table('stations').select("*").eq('station_id', station_id).eq('password', password).execute()
+            if response.data:
+                return jsonify({"status": "success", "station": response.data[0]})
+            else:
+                return jsonify({"error": "Credenciales inválidas"}), 401
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        # Mock login for testing without DB
+        if station_id == "CMS-001" and password == "admin":
+             return jsonify({"status": "success", "station": {"station_id": "CMS-001", "name": "Comisaría Central (Mock)"}})
+        return jsonify({"error": "Credenciales inválidas (Mock: Use CMS-001/admin)"}), 401
+
+# --- MOBILE AUTH ---
+@app.route('/mobile/register', methods=['POST'])
+def mobile_register():
+    data = request.json
+    full_name = data.get('full_name')
+    dni = data.get('dni')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not all([full_name, dni, email, password]):
+        return jsonify({"error": "Faltan datos"}), 400
+        
+    if supabase:
+        try:
+            # Check if exists
+            existing = supabase.table('mobile_users').select("*").or_(f"email.eq.{email},dni.eq.{dni}").execute()
+            if existing.data:
+                return jsonify({"error": "Usuario ya registrado (Email o DNI en uso)"}), 400
+                
+            new_user = {
+                'full_name': full_name,
+                'dni': dni,
+                'email': email,
+                'password': password # In production, hash this!
+            }
+            response = supabase.table('mobile_users').insert(new_user).execute()
+            return jsonify({"status": "success", "user": response.data[0]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        # Fallback
+        for u in mobile_users_fallback:
+            if u['email'] == email or u['dni'] == dni:
+                return jsonify({"error": "Usuario ya registrado"}), 400
+        
+        new_user = {
+            'id': str(uuid.uuid4()),
+            'full_name': full_name,
+            'dni': dni,
+            'email': email,
+            'password': password
+        }
+        mobile_users_fallback.append(new_user)
+        return jsonify({"status": "success", "user": new_user})
+
+@app.route('/mobile/login', methods=['POST'])
+def mobile_login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    if supabase:
+        try:
+            response = supabase.table('mobile_users').select("*").eq('email', email).eq('password', password).execute()
+            if response.data:
+                return jsonify({"status": "success", "user": response.data[0]})
+            else:
+                return jsonify({"error": "Credenciales inválidas"}), 401
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        for u in mobile_users_fallback:
+            if u['email'] == email and u['password'] == password:
+                return jsonify({"status": "success", "user": u})
+        return jsonify({"error": "Credenciales inválidas"}), 401
 
 # --- EVALUATIONS (MOBILE -> PC) ---
 @app.route('/evaluations', methods=['GET'])

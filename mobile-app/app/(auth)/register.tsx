@@ -1,9 +1,12 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { User, Mail, Lock, Shield, ArrowLeft } from 'lucide-react-native';
 import { COLORS } from '@/constants/theme';
 import { useSession } from '../../context/ctx';
+
+// REPLACE WITH YOUR PC IP
+const API_URL = 'http://10.67.153.175:5000';
 
 export default function RegisterScreen() {
   const { signIn } = useSession();
@@ -13,6 +16,7 @@ export default function RegisterScreen() {
   const [dni, setDni] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -34,14 +38,42 @@ export default function RegisterScreen() {
     return null;
   };
 
-  const enviar = () => {
+  const enviar = async () => {
     const errorMsg = validar();
 
     if (errorMsg) {
       setError(errorMsg);
-    } else {
-      setError("");
-      router.push("/(auth)/login");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/mobile/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: nombre,
+          dni: dni,
+          email: email,
+          password: pass
+        })
+      });
+
+      const data = await response.json();
+      setLoading(false);
+
+      if (data.status === 'success') {
+        Alert.alert("Registro Exitoso", "Tu cuenta ha sido creada. Inicia sesión.");
+        router.push("/(auth)/login");
+      } else {
+        setError(data.error || "Error al registrar usuario");
+      }
+    } catch (err) {
+      setLoading(false);
+      setError("No se pudo conectar con el servidor.");
+      console.error(err);
     }
   };
 
@@ -90,10 +122,12 @@ export default function RegisterScreen() {
           <Text style={styles.errorMsg}>{error}</Text>
         )}
 
-        <TouchableOpacity style={styles.registerBtn} onPress={() => {
-          signIn();
-        }}>
-          <Text style={styles.registerText}>ENVIAR SOLICITUD</Text>
+        <TouchableOpacity style={styles.registerBtn} onPress={enviar} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.secondary} />
+          ) : (
+            <Text style={styles.registerText}>ENVIAR SOLICITUD</Text>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>

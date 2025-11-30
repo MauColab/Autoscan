@@ -1,18 +1,56 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { COLORS, STYLES } from '@/constants/theme';
+import { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useSession } from '../../context/ctx';
 
-import { useSession } from '../../context/ctx'; // Importar el hook
+// REPLACE WITH YOUR PC IP
+const API_URL = 'http://10.67.153.175:5000';
 
 export default function LoginScreen() {
-  const { signIn } = useSession(); // Usar el hook
+  const { signIn } = useSession();
   const router = useRouter();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    signIn();
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Por favor ingrese correo y contraseña");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/mobile/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+      setLoading(false);
+
+      if (data.status === 'success') {
+        // Save user name for display
+        if (data.user && data.user.full_name) {
+            await SecureStore.setItemAsync('user_name', data.user.full_name);
+        }
+        signIn(); 
+      } else {
+        Alert.alert("Error", data.error || "Credenciales inválidas");
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Error", "No se pudo conectar con el servidor");
+      console.error(error);
+    }
   };
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -28,30 +66,42 @@ export default function LoginScreen() {
         <View style={styles.inputContainer}>
           <Mail color={COLORS.primary} size={20} style={styles.inputIcon} />
           <TextInput
-            placeholder="ID Corporativo / Email"
+            placeholder="Email"
             placeholderTextColor={COLORS.textDim}
             style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
         </View>
 
         <View style={styles.inputContainer}>
           <Lock color={COLORS.primary} size={20} style={styles.inputIcon} />
           <TextInput
-            placeholder="Contraseña de Acceso"
+            placeholder="Contraseña"
             placeholderTextColor={COLORS.textDim}
             secureTextEntry
             style={styles.input}
+            value={password}
+            onChangeText={setPassword}
           />
         </View>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
           <LinearGradient
             colors={[COLORS.primary, '#0099FF']}
             style={styles.gradientBtn}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.btnText}>ACCEDER</Text>
-            <ChevronRight color="#000" size={20} />
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <>
+                <Text style={styles.btnText}>ACCEDER</Text>
+                <ChevronRight color="#000" size={20} />
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>
