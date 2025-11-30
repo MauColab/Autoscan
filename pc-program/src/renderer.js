@@ -6,9 +6,15 @@ if (typeof lucide !== 'undefined') {
 // --- STATE MANAGEMENT ---
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 const stations = JSON.parse(localStorage.getItem('stations')) || [];
+const API_URL = 'http://localhost:5000'; // PC connects to localhost
 
-// --- DOM ELEMENTS (Selected lazily or in init) ---
+// --- DOM ELEMENTS ---
 let views, navBtns, pageTitle, stationDisplay, userNameDisplay;
+let currentReportId = null; // For status update
+
+// Queue for multiple plates
+let plateQueue = [];
+let currentPlateIndex = 0;
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,16 +52,7 @@ function init() {
         }
     } catch (e) {
         console.error("Error initializing app view:", e);
-        // Fallback to auth if something breaks
         showAuth();
-    }
-
-    // Always try to render data
-    try {
-        renderReports();
-        renderEvaluations();
-    } catch (e) {
-        console.error("Error rendering data:", e);
     }
 }
 
@@ -85,7 +82,6 @@ function handleLogin(e) {
     const id = document.getElementById('station-id').value;
     const pass = document.getElementById('password').value;
 
-    // Mock Login (Accept any if empty, or check against registered)
     const station = stations.find(s => s.id === id && s.pass === pass);
 
     if (station || (id === 'admin' && pass === 'admin')) {
@@ -142,12 +138,10 @@ function logout() {
 function switchTab(tabName) {
     if (!views || !views[tabName]) return;
 
-    // Hide all content views
     ['reports', 'evaluations', 'cameras', 'upload'].forEach(v => {
         if (views[v]) views[v].classList.add('hidden-section');
     });
 
-    // Reset nav buttons
     Object.values(navBtns).forEach(btn => {
         if (btn) {
             btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text";
@@ -156,17 +150,14 @@ function switchTab(tabName) {
         }
     });
 
-    // Show selected view
     views[tabName].classList.remove('hidden-section');
 
-    // Highlight button
     const activeBtn = navBtns[tabName];
     if (activeBtn) {
         activeBtn.className = "nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all bg-primary/10 text-primary border border-primary/20 shadow-sm";
         activeBtn.querySelector('i').classList.add('text-primary');
     }
 
-    // Update Title
     const titles = {
         reports: 'Reporte de Placas',
         evaluations: 'Evaluaciones Móviles',
@@ -177,66 +168,96 @@ function switchTab(tabName) {
     if (pageTitle) {
         pageTitle.innerText = titles[tabName];
     }
-    document.title = `AutoScan Enterprise - ${titles[tabName]}`;
+    
+    // Refresh data when switching tabs
+    if (tabName === 'reports') fetchReports();
+    if (tabName === 'evaluations') fetchEvaluations();
 }
 
-// --- MOCK DATA & RENDERING ---
+// --- API INTEGRATION ---
 
-// 1. Reports (Placas)
-const mockReports = [
-    { plate: 'ABC-123', model: 'Toyota Corolla', location: 'Av. Javier Prado', owner: 'Juan Perez', status: 'Limpio', time: '10:42 AM' },
-    { plate: 'XYZ-987', model: 'Nissan Sentra', location: 'Calle Los Pinos', owner: 'Maria Lopez', status: 'Robado', time: '11:15 AM' },
-    { plate: 'LMN-456', model: 'Kia Rio', location: 'Av. Arequipa', owner: 'Carlos Ruiz', status: 'Limpio', time: '11:30 AM' },
-    { plate: 'PQR-789', model: 'Hyundai Accent', location: 'Ovalo Monitor', owner: 'Ana Torres', status: 'Sospechoso', time: '12:05 PM' },
-    { plate: 'DEF-321', model: 'Honda Civic', location: 'Av. La Marina', owner: 'Luis Gomez', status: 'Limpio', time: '12:45 PM' },
-];
+// 1. REPORTS
+async function fetchReports() {
+    try {
+        const response = await fetch(`${API_URL}/reports`);
+        const reports = await response.json();
+        renderReports(reports);
+    } catch (e) {
+        console.error("Error fetching reports:", e);
+    }
+}
 
-function renderReports() {
+function renderReports(reports) {
     const tbody = document.getElementById('reports-table-body');
     if (!tbody) return;
 
-    tbody.innerHTML = mockReports.map(r => `
+    tbody.innerHTML = reports.map(r => `
         <tr class="hover:bg-surfaceHighlight/30 transition-colors">
             <td class="px-6 py-4 font-mono text-primary font-bold">${r.plate}</td>
-            <td class="px-6 py-4 text-textDim">${r.model}</td>
-            <td class="px-6 py-4 text-textDim">${r.location}</td>
-            <td class="px-6 py-4 text-textDim">${r.owner}</td>
+            <td class="px-6 py-4 text-textDim">${r.model || '-'}</td>
+            <td class="px-6 py-4 text-textDim">${r.location || '-'}</td>
+            <td class="px-6 py-4 text-textDim">${r.owner || '-'}</td>
             <td class="px-6 py-4">
                 <span class="px-2 py-1 rounded text-xs font-bold ${getStatusClass(r.status)}">
                     ${r.status.toUpperCase()}
                 </span>
             </td>
             <td class="px-6 py-4 text-textDim text-xs">${r.time}</td>
+            <td class="px-6 py-4">
+                ${r.status === 'Sospechoso' ? 
+                    `<button onclick="openStatusModal('${r.id}', '${r.plate}')" class="text-xs bg-surfaceHighlight hover:bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 transition-colors">Actualizar Estado</button>` 
+                    : '<span class="text-textDim text-xs">-</span>'}
+            </td>
         </tr>
     `).join('');
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function getStatusClass(status) {
     switch (status) {
         case 'Robado': return 'bg-error/20 text-error';
         case 'Sospechoso': return 'bg-secondary/20 text-secondary';
-        default: return 'bg-success/20 text-success';
+        case 'Limpio': return 'bg-success/20 text-success';
+        default: return 'bg-surfaceHighlight text-textDim';
     }
 }
 
-// 2. Evaluations (Mobile App)
-const mockEvaluations = [
-    { id: 1, sender: 'Oficial Ramirez', dni: '45879632', summary: 'Vehículo estacionado en zona rígida por 3 horas. Posible abandono.', img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' },
-    { id: 2, sender: 'Sgt. Mendoza', dni: '12345678', summary: 'Conductor se dio a la fuga tras choque leve. Placa visible parcialmente.', img: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80' },
-    { id: 3, sender: 'Oficial Castro', dni: '98765432', summary: 'Vehículo con lunas polarizadas sin permiso visible.', img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80' },
-];
+// 2. EVALUATIONS
+async function fetchEvaluations() {
+    try {
+        const response = await fetch(`${API_URL}/evaluations`);
+        const evals = await response.json();
+        const pending = evals.filter(e => e.status === 'pending');
+        
+        const badge = document.getElementById('eval-badge');
+        if (badge) {
+            badge.innerText = pending.length;
+            badge.classList.toggle('hidden-section', pending.length === 0);
+        }
+        
+        renderEvaluations(pending);
+    } catch (e) {
+        console.error("Error fetching evaluations:", e);
+    }
+}
 
-function renderEvaluations() {
+function renderEvaluations(evals) {
     const grid = document.getElementById('evaluations-grid');
     if (!grid) return;
 
-    grid.innerHTML = mockEvaluations.map(e => `
+    if (evals.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-textDim py-10">No hay evaluaciones pendientes</div>';
+        return;
+    }
+
+    grid.innerHTML = evals.map(e => `
         <div class="bg-surface border border-surfaceHighlight rounded-xl overflow-hidden flex flex-col">
             <div class="h-48 overflow-hidden relative group">
-                <img src="${e.img}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                <img src="${e.img_url && e.img_url.startsWith('http') ? e.img_url : 'https://via.placeholder.com/400x300?text=Evidencia'}" class="w-full h-full object-cover">
                 <div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
                 <div class="absolute bottom-3 left-3">
-                    <span class="px-2 py-1 bg-primary/20 text-primary border border-primary/30 rounded text-xs font-bold">NUEVO CASO</span>
+                    <span class="px-2 py-1 bg-primary/20 text-primary border border-primary/30 rounded text-xs font-bold">PLACA: ${e.plate}</span>
                 </div>
             </div>
             <div class="p-5 flex-1 flex flex-col">
@@ -245,23 +266,58 @@ function renderEvaluations() {
                         <h4 class="font-bold text-text">${e.sender}</h4>
                         <p class="text-xs text-textDim">DNI: ${e.dni}</p>
                     </div>
-                    <button class="text-textDim hover:text-primary"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
                 </div>
-                <p class="text-sm text-textDim mb-4 flex-1">${e.summary}</p>
+                <p class="text-sm text-textDim mb-4 flex-1">
+                    <span class="block text-text font-bold mb-1">Ubicación: ${e.location || 'No especificada'}</span>
+                    ${e.summary}
+                </p>
                 <div class="flex gap-2 mt-auto">
-                    <button class="flex-1 py-2 bg-surfaceHighlight hover:bg-surfaceHighlight/80 rounded-lg text-xs font-bold transition-colors">DESCARTAR</button>
-                    <button class="flex-1 py-2 bg-primary text-background hover:bg-primary/90 rounded-lg text-xs font-bold transition-colors shadow-lg shadow-primary/10">PROCESAR</button>
+                    <button onclick="processEvaluation('${e.id}', 'discarded')" class="flex-1 py-2 bg-surfaceHighlight hover:bg-surfaceHighlight/80 rounded-lg text-xs font-bold transition-colors">DESCARTAR</button>
+                    <button onclick="processEvaluation('${e.id}', 'reviewing')" class="flex-1 py-2 bg-primary text-background hover:bg-primary/90 rounded-lg text-xs font-bold transition-colors shadow-lg shadow-primary/10">PROCESAR</button>
                 </div>
             </div>
         </div>
     `).join('');
 
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function processEvaluation(id, action) {
+    try {
+        await fetch(`${API_URL}/evaluations/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: action })
+        });
+
+        if (action === 'reviewing') {
+            const response = await fetch(`${API_URL}/evaluations`);
+            const evals = await response.json();
+            const target = evals.find(e => e.id === id);
+            
+            if (target) {
+                await fetch(`${API_URL}/reports`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plate: target.plate,
+                        model: target.model,
+                        location: target.location,
+                        owner: target.owner,
+                        status: 'Sospechoso'
+                    })
+                });
+                alert("Se envió para verificar los antecedentes");
+            }
+        }
+
+        fetchEvaluations();
+    } catch (e) {
+        console.error("Error processing evaluation:", e);
     }
 }
 
-// --- UPLOAD LOGIC ---
+// --- UPLOAD & MODALS ---
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const resultContainer = document.getElementById('result-container');
@@ -293,7 +349,6 @@ if (fileInput) {
 function handleFiles(files) {
     if (files.length > 0) {
         const file = files[0];
-        // Accept images or zip
         if (file.type.startsWith('image/') || file.name.endsWith('.zip') || file.type.includes('zip')) {
             processFile(file);
         } else {
@@ -302,16 +357,63 @@ function handleFiles(files) {
     }
 }
 
-function processFile(file) {
+async function processFile(file) {
     if (dropZone) dropZone.classList.add('hidden-section');
     if (resultContainer) {
         resultContainer.classList.remove('hidden-section');
         resultContainer.classList.add('fade-in');
+        // Add "Upload Another" button if not exists
+        if (!document.getElementById('btn-upload-another')) {
+             const btn = document.createElement('button');
+             btn.id = 'btn-upload-another';
+             btn.className = "mt-4 w-full py-2 bg-surfaceHighlight hover:bg-surfaceHighlight/80 rounded-lg text-xs font-bold transition-colors";
+             btn.innerText = "SUBIR OTRA EVIDENCIA";
+             btn.onclick = resetUpload;
+             resultContainer.appendChild(btn);
+        }
     }
 
-    if (filenameDisplay) filenameDisplay.innerText = file.name;
+    if (filenameDisplay) filenameDisplay.innerText = "Procesando " + file.name + "...";
 
-    console.log("Processing file:", file.name);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${API_URL}/predict`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+             const plates = data.plates_found || [];
+             
+             if (filenameDisplay) {
+                 filenameDisplay.innerHTML = `
+                    <span class="text-primary">${file.name}</span><br>
+                    <span class="text-success">Placas encontradas: ${plates.length}</span>
+                 `;
+             }
+             
+             if (plates.length > 1) {
+                 // Multiple plates: Ask user
+                 openSelectionModal(plates);
+             } else if (plates.length === 1) {
+                 // Single plate: Direct process
+                 startPlateQueue([plates[0]]);
+             } else {
+                 alert("No se detectaron placas en la imagen.");
+             }
+             
+        } else {
+             if (filenameDisplay) filenameDisplay.innerText = "Error: " + (data.error || "Desconocido");
+        }
+
+    } catch (error) {
+        console.error("API Error:", error);
+        if (filenameDisplay) filenameDisplay.innerText = "Error de conexión con el servidor AI.";
+    }
 }
 
 function resetUpload() {
@@ -320,10 +422,152 @@ function resetUpload() {
     if (fileInput) fileInput.value = "";
 }
 
-// Expose functions to window for HTML onclick events
+// --- MULTIPLE PLATE LOGIC ---
+function openSelectionModal(plates) {
+    // Create modal dynamically if not exists (or use a predefined one)
+    // For simplicity, we'll use a prompt-like approach or inject HTML
+    // Let's inject a simple modal into the body
+    
+    let modal = document.getElementById('modal-selection');
+    if (!modal) {
+        const modalHTML = `
+        <div id="modal-selection" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden-section">
+            <div class="bg-surface border border-surfaceHighlight rounded-xl w-full max-w-md p-6 shadow-2xl">
+                <h3 class="text-xl font-bold text-text mb-4">Placas Detectadas</h3>
+                <p class="text-sm text-textDim mb-4">Seleccione las placas que desea reportar:</p>
+                <div id="selection-list" class="space-y-2 mb-6 max-h-60 overflow-y-auto"></div>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeModal('modal-selection')" class="px-4 py-2 text-textDim hover:text-text text-sm font-bold">Cancelar</button>
+                    <button onclick="confirmSelection()" class="px-6 py-2 bg-primary text-background rounded-lg font-bold hover:bg-primary/90 transition-colors">Continuar</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        modal = document.getElementById('modal-selection');
+    }
+    
+    const list = document.getElementById('selection-list');
+    list.innerHTML = plates.map((p, i) => `
+        <label class="flex items-center gap-3 p-3 bg-background border border-surfaceHighlight rounded-lg cursor-pointer hover:border-primary/50">
+            <input type="checkbox" value="${p}" class="w-4 h-4 accent-primary" checked>
+            <span class="font-mono font-bold text-text">${p}</span>
+        </label>
+    `).join('');
+    
+    modal.classList.remove('hidden-section');
+}
+
+function confirmSelection() {
+    const checkboxes = document.querySelectorAll('#selection-list input[type="checkbox"]:checked');
+    const selected = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selected.length === 0) {
+        alert("Seleccione al menos una placa.");
+        return;
+    }
+    
+    closeModal('modal-selection');
+    startPlateQueue(selected);
+}
+
+function startPlateQueue(plates) {
+    plateQueue = plates;
+    currentPlateIndex = 0;
+    openDetailsModal(plateQueue[0]);
+}
+
+// --- MODAL LOGIC ---
+function openDetailsModal(plate) {
+    const input = document.getElementById('modal-plate');
+    input.value = plate;
+    input.removeAttribute('readonly'); // Make editable
+    
+    document.getElementById('modal-model').value = '';
+    document.getElementById('modal-location').value = '';
+    document.getElementById('modal-owner').value = '';
+    
+    // Update button text
+    const btn = document.querySelector('#details-form button[type="submit"]');
+    if (plateQueue.length > 1 && currentPlateIndex < plateQueue.length - 1) {
+        btn.innerText = "Siguiente Placa (" + (currentPlateIndex + 1) + "/" + plateQueue.length + ")";
+    } else {
+        btn.innerText = "Guardar Reporte";
+    }
+    
+    document.getElementById('modal-details').classList.remove('hidden-section');
+}
+
+function openStatusModal(id, plate) {
+    currentReportId = id;
+    document.getElementById('status-plate').innerText = plate;
+    document.getElementById('modal-status').classList.remove('hidden-section');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden-section');
+}
+
+async function submitDetails(e) {
+    e.preventDefault();
+    const plate = document.getElementById('modal-plate').value;
+    const model = document.getElementById('modal-model').value;
+    const location = document.getElementById('modal-location').value;
+    const owner = document.getElementById('modal-owner').value;
+
+    try {
+        await fetch(`${API_URL}/reports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plate, model, location, owner, status: 'Sospechoso'
+            })
+        });
+        
+        // Check if more plates in queue
+        currentPlateIndex++;
+        if (currentPlateIndex < plateQueue.length) {
+            openDetailsModal(plateQueue[currentPlateIndex]);
+        } else {
+            closeModal('modal-details');
+            alert("Se envió para verificar los antecedentes");
+            // Don't reset upload immediately, user might want to upload another
+            switchTab('reports'); 
+        }
+        
+    } catch (error) {
+        console.error("Error saving report:", error);
+    }
+}
+
+async function updateStatus(newStatus) {
+    if (!currentReportId) return;
+    
+    try {
+        await fetch(`${API_URL}/reports/${currentReportId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        closeModal('modal-status');
+        fetchReports(); // Refresh table
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+}
+
+// Expose functions to window
 window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
 window.toggleAuthMode = toggleAuthMode;
 window.logout = logout;
 window.switchTab = switchTab;
 window.resetUpload = resetUpload;
+window.fetchReports = fetchReports;
+window.fetchEvaluations = fetchEvaluations;
+window.processEvaluation = processEvaluation;
+window.openStatusModal = openStatusModal;
+window.closeModal = closeModal;
+window.submitDetails = submitDetails;
+window.updateStatus = updateStatus;
+window.confirmSelection = confirmSelection;
