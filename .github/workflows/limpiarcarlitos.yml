@@ -10,7 +10,7 @@ on:
       aplicar:
         description: "Escribir los cambios (false = solo simulacion)"
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
