@@ -91,3 +91,13 @@ ios/
 
 # Metro
 metro-file-map-cache-*
+# Pesos de YOLO: los preentrenados se descargan solos y el entrenado va como release
+ai-model/models/*.pt
+ai-model/modeloentrenado.pt
+
+# Caches de etiquetas que YOLO regenera en cada entrenamiento
+*.cache
+
+# Copias de respaldo y conversion antigua del dataset
+ai-model/datasets/backups/
+ai-model/datasets/yolo/
