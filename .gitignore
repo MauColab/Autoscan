@@ -91,3 +91,13 @@ ios/
 
 # Metro
 metro-file-map-cache-*
+# El dataset no va versionado: se baja de Roboflow y las etiquetas .txt se
+# regeneran con ai-model/data_tools/convert_csv_to_yolo.py
+ai-model/datasets/
+!ai-model/datasets/**/_annotations.csv
+
+# Pesos de YOLO: los preentrenados se descargan solos, el entrenado va como release
+*.pt
+
+# Caches de etiquetas que YOLO regenera en cada entrenamiento
+*.cache
