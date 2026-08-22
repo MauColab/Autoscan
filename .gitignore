@@ -21,3 +21,83 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Archivos de datos
+data/
+Dataset_TP/ecualizadas/
+
+# Entorno Virtual
+.venv/
+venv/
+*.env
+
+# Cache de Python
+__pycache__/
+*.pyc
+
+# Salidas de YOLO 
+runs/
+
+# Archivos de VSCode
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dependencias
+node_modules/
+/.pnp
+.pnp.js
+
+# Expo
+.expo/
+web-build/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema Operativo
+.DS_Store
+.Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build nativos (si alguna vez haces prebuild)
+android/
+ios/
+
+# Variables de entorno (IMPORTANTE para seguridad)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Metro
+metro-file-map-cache-*
+# El dataset no va versionado: se baja de Roboflow y las etiquetas .txt se
+# regeneran con ai-model/data_tools/convert_csv_to_yolo.py
+ai-model/datasets/
+!ai-model/datasets/**/_annotations.csv
+
+# Pesos de YOLO: los preentrenados se descargan solos, el entrenado va como release
+*.pt
+
+# Caches de etiquetas que YOLO regenera en cada entrenamiento
+*.cache

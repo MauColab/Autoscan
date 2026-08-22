@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoScan Enterprise</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#050B14',
+                        surface: '#0F172A',
+                        surfaceHighlight: '#1E293B',
+                        primary: '#00F0FF',
+                        secondary: '#7000FF',
+                        success: '#00FF94',
+                        error: '#FF0055',
+                        text: '#F8FAFC',
+                        textDim: '#94A3B8',
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(0, 240, 255, 0.3), 0 0 20px rgba(0, 240, 255, 0.1)',
+                    },
+                    animation: {
+                        'scan': 'scan 2s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { top: '0%' },
+                            '100%': { top: '100%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0F172A;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .hidden-section {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-background text-text h-screen flex overflow-hidden font-sans selection:bg-primary/30">
+
+    <!-- VISTA DE AUTENTICACIÓN (LOGIN / REGISTRO) -->
+    <div id="auth-view" class="w-full h-full flex flex-col items-center justify-center relative z-50 bg-background">
+        <!-- Background decoration -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[20%] -right-[10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div
+            class="w-full max-w-md p-8 bg-surface/50 backdrop-blur-xl border border-surfaceHighlight rounded-2xl shadow-2xl relative z-10">
+            <div class="text-center mb-8">
+                <div
+                    class="w-16 h-16 mx-auto bg-gradient-to-br from-surfaceHighlight to-background border border-primary/30 rounded-xl flex items-center justify-center shadow-lg mb-4">
+                    <i data-lucide="shield" class="w-8 h-8 text-primary"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-wide">AUTO <span class="text-primary">SCAN</span></h1>
+                <p class="text-textDim text-sm mt-1">Sistema de Control y Vigilancia</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-5" onsubmit="handleLogin(event)">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-textDim uppercase tracking-wider">ID Comisaría</label>
+                    <div class="relative">
+                        <i data-lucide="building-2" class="absolute left-3 top-3 w-5 h-5 text-textDim"></i>
+                        <input type="text" id="station-id" required
+                            class="w-full bg-background border border-surfaceHighlight rounded-lg py-2.5 pl-10 pr-4 text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-textDim/50"
+                            placeholder="CMS-001">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-textDim uppercase tracking-wider">Contraseña</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-textDim"></i>
+                        <input type="password" id="password" required
+                            class="w-full bg-background border border-surfaceHighlight rounded-lg py-2.5 pl-10 pr-4 text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-textDim/50"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full py-3 bg-primary text-background font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                    INICIAR SESIÓN
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="register-form" class="space-y-5 hidden-section" onsubmit="handleRegister(event)">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-textDim uppercase tracking-wider">Nombre Comisaría</label>
+                    <div class="relative">
+                        <i data-lucide="map-pin" class="absolute left-3 top-3 w-5 h-5 text-textDim"></i>
+                        <input type="text" id="reg-station-name" required
+                            class="w-full bg-background border border-surfaceHighlight rounded-lg py-2.5 pl-10 pr-4 text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-textDim/50"
+                            placeholder="Comisaría Central">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-textDim uppercase tracking-wider">ID Asignado</label>
+                    <div class="relative">
+                        <i data-lucide="hash" class="absolute left-3 top-3 w-5 h-5 text-textDim"></i>
+                        <input type="text" id="reg-station-id" required
+                            class="w-full bg-background border border-surfaceHighlight rounded-lg py-2.5 pl-10 pr-4 text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-textDim/50"
+                            placeholder="CMS-XXX">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-textDim uppercase tracking-wider">Contraseña</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-textDim"></i>
+                        <input type="password" id="reg-password" required
+                            class="w-full bg-background border border-surfaceHighlight rounded-lg py-2.5 pl-10 pr-4 text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-textDim/50"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full py-3 bg-secondary text-white font-bold rounded-lg hover:bg-secondary/90 transition-all shadow-lg shadow-secondary/20">
+                    REGISTRAR SEDE
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-textDim" id="auth-switch-text">¿No está registrado? <a href="#"
+                        onclick="toggleAuthMode()" class="text-primary hover:underline">Registrar Comisaría</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL (OCULTA POR DEFECTO) -->
+    <div id="app-view" class="hidden-section w-full h-full flex">
+
+        <!-- SIDEBAR -->
+        <aside
+            class="w-64 flex-shrink-0 bg-surface/90 backdrop-blur-xl border-r border-surfaceHighlight flex flex-col z-20">
+            <div class="p-6 flex items-center gap-3 border-b border-surfaceHighlight/50">
+                <div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <i data-lucide="shield" class="w-4 h-4 text-primary"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide">AUTO<span class="text-primary">SCAN</span></h1>
+                    <p class="text-[10px] text-textDim uppercase tracking-wider" id="station-display">Cargando...</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-1" id="sidebar-nav">
+                <p class="px-4 py-2 text-[10px] font-bold text-textDim uppercase tracking-widest opacity-70">Operaciones
+                </p>
+
+                <button onclick="switchTab('reports')" id="btn-reports"
+                    class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>Reporte de Placas</span>
+                </button>
+
+                <button onclick="switchTab('evaluations')" id="btn-evaluations"
+                    class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text">
+                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                    <span>Evaluaciones App</span>
+                    <span id="eval-badge" class="ml-auto bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden-section">0</span>
+                </button>
+
+                <button onclick="switchTab('cameras')" id="btn-cameras"
+                    class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text">
+                    <i data-lucide="cctv" class="w-4 h-4"></i>
+                    <span>Cámaras Policiales</span>
+                </button>
+
+                <p class="px-4 py-2 mt-4 text-[10px] font-bold text-textDim uppercase tracking-widest opacity-70">
+                    Herramientas</p>
+
+                <button onclick="switchTab('upload')" id="btn-upload"
+                    class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all text-textDim hover:bg-surfaceHighlight hover:text-text">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    <span>Subir Evidencia</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-surfaceHighlight">
+                <button onclick="logout()"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-error hover:bg-error/5 rounded-lg transition-colors text-sm">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 relative flex flex-col h-full bg-background/50">
+            <!-- Header -->
+            <header
+                class="h-16 border-b border-surfaceHighlight px-8 flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-10">
+                <div>
+                    <h2 id="page-title" class="text-xl font-bold text-text">Reporte de Placas</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden md:block">
+                        <p class="text-sm font-bold text-text" id="user-name">Usuario</p>
+                        <p class="text-xs text-textDim" id="header-station-id">ID: ---</p>
+                    </div>
+                    <div
+                        class="w-9 h-9 rounded-full bg-surfaceHighlight border border-surfaceHighlight flex items-center justify-center text-text font-bold">
+                        --
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Body -->
+            <div class="flex-1 overflow-y-auto p-8">
+
+                <!-- VISTA 1: REPORTES (Placas) -->
+                <section id="view-reports" class="fade-in h-full flex flex-col">
+                    <div class="bg-surface border border-surfaceHighlight rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-surfaceHighlight flex justify-between items-center">
+                            <div class="relative w-64">
+                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-textDim"></i>
+                                <input type="text" placeholder="Buscar placa, modelo..."
+                                    class="w-full bg-background border border-surfaceHighlight rounded-lg py-2 pl-9 pr-4 text-sm focus:border-primary focus:outline-none">
+                            </div>
+                            <button onclick="fetchReports()"
+                                class="flex items-center gap-2 px-3 py-2 bg-surfaceHighlight rounded-lg text-sm hover:bg-surfaceHighlight/80 transition-colors">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-surfaceHighlight/50 text-textDim uppercase text-xs">
+                                    <tr>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Placa</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Modelo</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Ubicación</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Propietario</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Estado</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Hora</th>
+                                        <th class="px-6 py-3 font-medium tracking-wider">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surfaceHighlight" id="reports-table-body">
+                                    <!-- JS Populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 2: EVALUACIONES (App Mobile) -->
+                <section id="view-evaluations" class="hidden-section fade-in">
+                    <div class="flex justify-end mb-4">
+                        <button onclick="fetchEvaluations()" class="text-primary text-sm hover:underline flex items-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Lista
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="evaluations-grid">
+                        <!-- JS Populated Cards -->
+                    </div>
+                </section>
+
+                <!-- VISTA 3: CÁMARAS -->
+                <section id="view-cameras" class="hidden-section fade-in">
+                    <div class="grid grid-cols-2 gap-4 h-[calc(100vh-10rem)]">
+                        <div class="bg-black rounded-xl border border-surfaceHighlight relative overflow-hidden group">
+                            <div
+                                class="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs font-mono text-success flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div> CAM-01: Av. Principal
+                            </div>
+                            <img src="https://images.unsplash.com/photo-1566618625987-471549669456?auto=format&fit=crop&q=80"
+                                class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity">
+                        </div>
+                        <div class="bg-black rounded-xl border border-surfaceHighlight relative overflow-hidden group">
+                            <div
+                                class="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs font-mono text-success flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div> CAM-02: Plaza Norte
+                            </div>
+                            <img src="https://images.unsplash.com/photo-1541447270888-83e8494f9c06?auto=format&fit=crop&q=80"
+                                class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity">
+                        </div>
+                        <div class="bg-black rounded-xl border border-surfaceHighlight relative overflow-hidden group">
+                            <div
+                                class="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs font-mono text-success flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div> CAM-03: Acceso Sur
+                            </div>
+                            <img src="https://images.unsplash.com/photo-1565514020176-dbf227791634?auto=format&fit=crop&q=80"
+                                class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity">
+                        </div>
+                        <div
+                            class="bg-black rounded-xl border border-surfaceHighlight relative overflow-hidden group flex items-center justify-center">
+                            <div class="text-center">
+                                <i data-lucide="signal-low" class="w-12 h-12 text-textDim mx-auto mb-2"></i>
+                                <p class="text-textDim text-sm">CAM-04: Sin Señal</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 4: UPLOAD (Modificada) -->
+                <section id="view-upload" class="hidden-section fade-in h-full flex flex-col">
+                    <div id="drop-zone"
+                        class="flex-1 border-2 border-dashed border-surfaceHighlight bg-surface/20 rounded-xl flex flex-col items-center justify-center gap-4 transition-all hover:border-primary/50 hover:bg-surface/40">
+                        <div class="w-16 h-16 rounded-full bg-surfaceHighlight flex items-center justify-center">
+                            <i data-lucide="folder-up" class="w-8 h-8 text-textDim"></i>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-lg font-bold">Cargar Evidencia</h3>
+                            <p class="text-textDim text-sm">Soporta Imágenes (JPG, PNG) y Archivos Comprimidos (ZIP)</p>
+                        </div>
+                        <button onclick="document.getElementById('file-input').click()"
+                            class="px-6 py-2 bg-surfaceHighlight border border-surfaceHighlight hover:border-primary text-text rounded-lg transition-all text-sm font-medium">
+                            Seleccionar Archivos
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept="image/*,.zip">
+                    </div>
+
+                    <!-- Results Container (Hidden by default) -->
+                    <div id="result-container"
+                        class="hidden-section mt-6 bg-surface border border-surfaceHighlight rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold flex items-center gap-2"><i data-lucide="check-circle-2"
+                                    class="text-success"></i> Archivo Procesado</h3>
+                            <button onclick="resetUpload()" class="text-xs text-error hover:underline">Limpiar</button>
+                        </div>
+                        <div
+                            class="bg-background p-4 rounded-lg border border-surfaceHighlight flex items-center gap-4">
+                            <div class="w-12 h-12 bg-surfaceHighlight rounded flex items-center justify-center">
+                                <i data-lucide="file-archive" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm" id="filename-display">evidencia_lote_01.zip</p>
+                                <p class="text-xs text-textDim">Procesado correctamente • 32 imágenes extraídas</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: DETALLES DE REPORTE (UPLOAD) -->
+    <div id="modal-details" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden-section">
+        <div class="bg-surface border border-surfaceHighlight rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-text">Detalles del Reporte</h3>
+                <button onclick="closeModal('modal-details')" class="text-textDim hover:text-text"><i data-lucide="x"></i></button>
+            </div>
+            <form id="details-form" onsubmit="submitDetails(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-textDim uppercase">Placa Detectada</label>
+                    <input type="text" id="modal-plate" class="w-full bg-background border border-surfaceHighlight rounded-lg p-3 text-text font-mono font-bold" readonly>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-textDim uppercase">Modelo</label>
+                        <input type="text" id="modal-model" class="w-full bg-background border border-surfaceHighlight rounded-lg p-3 text-text" placeholder="Ej. Toyota Yaris">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-textDim uppercase">Ubicación</label>
+                        <input type="text" id="modal-location" class="w-full bg-background border border-surfaceHighlight rounded-lg p-3 text-text" placeholder="Ej. Av. Arequipa">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-textDim uppercase">Propietario</label>
+                    <input type="text" id="modal-owner" class="w-full bg-background border border-surfaceHighlight rounded-lg p-3 text-text" placeholder="Nombre completo">
+                </div>
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
+                    <i data-lucide="info" class="w-5 h-5 text-primary shrink-0 mt-0.5"></i>
+                    <p class="text-xs text-textDim">Este reporte se guardará como <span class="text-primary font-bold">SOSPECHOSO</span> para revisión de antecedentes.</p>
+                </div>
+                <div class="flex justify-end gap-3 mt-4">
+                    <button type="button" onclick="closeModal('modal-details')" class="px-4 py-2 text-textDim hover:text-text text-sm font-bold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-primary text-background rounded-lg font-bold hover:bg-primary/90 transition-colors">Guardar Reporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ACTUALIZAR ESTADO -->
+    <div id="modal-status" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden-section">
+        <div class="bg-surface border border-surfaceHighlight rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-text">Actualizar Estado</h3>
+                <button onclick="closeModal('modal-status')" class="text-textDim hover:text-text"><i data-lucide="x"></i></button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-sm text-textDim">Seleccione el estado final para la placa <span id="status-plate" class="text-text font-bold font-mono"></span>. Esta acción es irreversible.</p>
+                
+                <button onclick="updateStatus('Limpio')" class="w-full p-4 bg-success/10 border border-success/20 rounded-lg flex items-center gap-4 hover:bg-success/20 transition-all group">
+                    <div class="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center group-hover:bg-success text-success group-hover:text-background transition-colors">
+                        <i data-lucide="check"></i>
+                    </div>
+                    <div class="text-left">
+                        <h4 class="font-bold text-success">Limpio</h4>
+                        <p class="text-xs text-textDim">Sin antecedentes penales ni robos.</p>
+                    </div>
+                </button>
+
+                <button onclick="updateStatus('Robado')" class="w-full p-4 bg-error/10 border border-error/20 rounded-lg flex items-center gap-4 hover:bg-error/20 transition-all group">
+                    <div class="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center group-hover:bg-error text-error group-hover:text-white transition-colors">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <div class="text-left">
+                        <h4 class="font-bold text-error">Robado / Antecedentes</h4>
+                        <p class="text-xs text-textDim">Vehículo con orden de captura.</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>
